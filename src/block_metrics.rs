@@ -1,15 +1,14 @@
-use std::sync::mpsc::Receiver;
 use std::collections::HashMap;
 use std::usize::MAX;
-use prometheus::{gather, push_metrics, Gauge, Counter};
+use std::sync::mpsc::channel;
+use pubsub::start_pubsub;
+use prometheus::{gather, push_metrics, Gauge, Counter, Opts};
 use libproto::{parse_msg, MsgClass};
 use libproto::blockchain::Block;
 use proof::TendermintProof;
 
-/// Process message from mq, push metric to prometheus gateway.
+/// Subscribe message from mq, push metric to prometheus gateway.
 pub(crate) struct BlockMetrics {
-    /// Receive message from
-    receiver: Receiver<(String, Vec<u8>)>,
     /// Block generated interval gauge
     block_interval: Gauge,
     /// Block number
@@ -22,30 +21,38 @@ pub(crate) struct BlockMetrics {
     current_block_timestamp: u64,
 }
 
+fn opts_with_amqp_url(name: String, help: String, amqp_url: &str) -> Opts {
+    let opts = Opts::new(name, help);
+    opts.const_label("amqp_url", amqp_url)
+}
+
 impl BlockMetrics {
-    pub fn new(receiver: Receiver<(String, Vec<u8>)>) -> Self {
-        let block_interval = register_gauge!(
-            "block_interval",
-            "Block generated interval in seconds."
-        ).unwrap();
+    pub fn new(amqp_url: &str) -> Self {
+        let block_interval = register_gauge!(opts_with_amqp_url(
+            String::from("block_interval"),
+            String::from("Block generate interval"),
+            amqp_url
+        )).unwrap();
 
-        let block_number = register_gauge!(
-            "block_number",
-            "The current height of chain."
-        ).unwrap();
+        let block_number = register_gauge!(opts_with_amqp_url(
+            String::from("block_number"),
+            String::from("The current height of chain."),
+            amqp_url
+        )).unwrap();
 
-        let last_block_generator = register_gauge!(
-            "last_block_generator",
-            "Generator of last block, represent with node id."
-        ).unwrap();
+        let last_block_generator = register_gauge!(opts_with_amqp_url(
+            String::from("last_block_generator"),
+            String::from("Generator of last block, represent with node id."),
+            amqp_url
+        )).unwrap();
 
-        let transaction_counter = register_counter!(
-            "transaction_counter",
-            "Transaction counter"
-        ).unwrap();
+        let transaction_counter = register_counter!(opts_with_amqp_url(
+            String::from("transaction_counter"),
+            String::from("Transaction counter"),
+            amqp_url
+        )).unwrap();
 
         BlockMetrics {
-            receiver: receiver,
             block_interval: block_interval,
             block_number: block_number,
             last_block_generator: last_block_generator,
@@ -97,13 +104,21 @@ impl BlockMetrics {
     }
 
     pub fn process(&mut self) {
+        let (send_to_main, receive_from_mq) = channel();
+        let (_send_to_mq, receive_from_main) = channel();
+        start_pubsub(
+            "monitor_consensus",
+            vec!["consensus.blk", "net.blk"],
+            send_to_main,
+            receive_from_main,
+        );
+
         let address = String::from("127.0.0.1:9091");
         loop {
-            let (_key, content) = self.receiver.recv().unwrap();
+            let (_key, content) = receive_from_mq.recv().unwrap();
             let (_cmd_id, _origin, msg_type) = parse_msg(&content);
             match msg_type {
                 MsgClass::BLOCKWITHPROOF(block_with_proof) => {
-                    println!("receive msg");
                     self.record_block(block_with_proof.get_blk(), &address);
                 }
                 MsgClass::SYNCRESPONSE(sync_response) => {

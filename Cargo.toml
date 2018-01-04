@@ -1,0 +1,23 @@
+[package]
+name = "monitor"
+version = "0.1.0"
+authors = ["Cryptape Technologies <arch@cryptape.com>"]
+
+[dependencies]
+libproto = { git = "https://github.com/cryptape/cita-common.git", branch = "develop" }
+pubsub = { git = "https://github.com/cryptape/cita-common.git", branch = "develop" }
+proof = { git = "https://github.com/cryptape/cita-common.git", branch = "develop" }
+serde = "1.0"
+serde_json = "1.0"
+serde_derive = "1.0"
+dotenv = "0.10.0"
+
+[dependencies.prometheus]
+version = "0.3.6"
+features = ["push"]
+
+[features]
+default = ["secp256k1", "sha3hash", "rabbitmq"]
+secp256k1 = ["libproto/secp256k1", "proof/secp256k1"]
+sha3hash = ["libproto/sha3hash", "proof/sha3hash"]
+rabbitmq = ["pubsub/rabbitmq"]

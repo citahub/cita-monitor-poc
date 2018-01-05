@@ -1,3 +1,4 @@
+extern crate dotenv;
 extern crate libproto;
 #[macro_use]
 extern crate prometheus;
@@ -6,19 +7,18 @@ extern crate pubsub;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_json;
-extern crate dotenv;
 
 mod block_metrics;
 mod jsonrpc_metrics;
 mod config;
 mod proto;
 
-use std::env;
-use std::thread;
-use std::sync::mpsc::channel;
-use config::Config;
 use block_metrics::BlockMetrics;
+use config::Config;
 use pubsub::start_pubsub;
+use std::env;
+use std::sync::mpsc::channel;
+use std::thread;
 
 fn main() {
     let config = Config::load("./config.json");

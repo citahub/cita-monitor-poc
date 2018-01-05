@@ -1,10 +1,10 @@
-use std::collections::HashMap;
-use std::usize::MAX;
-use std::sync::mpsc::Receiver;
-use prometheus::{gather, push_metrics, Gauge, Counter, Opts};
 use libproto::{parse_msg, MsgClass};
 use libproto::blockchain::Block;
+use prometheus::{gather, push_metrics, Counter, Gauge, Opts};
 use proof::TendermintProof;
+use std::collections::HashMap;
+use std::sync::mpsc::Receiver;
+use std::usize::MAX;
 
 /// Subscribe message from mq, push metric to prometheus gateway.
 pub(crate) struct BlockMetrics {

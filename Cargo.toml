@@ -25,7 +25,8 @@ log = "0.3"
 clap = "2"
 
 [dependencies.prometheus]
-version = "0.3.6"
+git = "https://github.com/cryptape/rust-prometheus.git"
+branch = "metrics_collector"
 features = ["push"]
 
 [features]

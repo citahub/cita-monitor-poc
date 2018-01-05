@@ -23,7 +23,6 @@ mod server;
 mod block_metrics;
 mod jsonrpc_metrics;
 mod config;
-mod proto;
 
 use block_metrics::BlockMetrics;
 use clap::App;

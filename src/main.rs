@@ -11,6 +11,7 @@ extern crate dotenv;
 mod block_metrics;
 mod jsonrpc_metrics;
 mod config;
+mod proto;
 
 use std::env;
 use std::thread;

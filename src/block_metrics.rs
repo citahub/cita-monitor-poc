@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::usize::MAX;
-use std::sync::mpsc::channel;
-use pubsub::start_pubsub;
+use std::sync::mpsc::Receiver;
 use prometheus::{gather, push_metrics, Gauge, Counter, Opts};
 use libproto::{parse_msg, MsgClass};
 use libproto::blockchain::Block;
@@ -9,6 +8,7 @@ use proof::TendermintProof;
 
 /// Subscribe message from mq, push metric to prometheus gateway.
 pub(crate) struct BlockMetrics {
+    receiver: Receiver<(String, Vec<u8>)>,
     /// Block generated interval gauge
     block_interval: Gauge,
     /// Block number
@@ -27,7 +27,7 @@ fn opts_with_amqp_url(name: String, help: String, amqp_url: &str) -> Opts {
 }
 
 impl BlockMetrics {
-    pub fn new(amqp_url: &str) -> Self {
+    pub fn new(amqp_url: &str, receiver: Receiver<(String, Vec<u8>)>) -> Self {
         let block_interval = register_gauge!(opts_with_amqp_url(
             String::from("block_interval"),
             String::from("Block generate interval"),
@@ -53,6 +53,7 @@ impl BlockMetrics {
         )).unwrap();
 
         BlockMetrics {
+            receiver: receiver,
             block_interval: block_interval,
             block_number: block_number,
             last_block_generator: last_block_generator,
@@ -104,18 +105,9 @@ impl BlockMetrics {
     }
 
     pub fn process(&mut self) {
-        let (send_to_main, receive_from_mq) = channel();
-        let (_send_to_mq, receive_from_main) = channel();
-        start_pubsub(
-            "monitor_consensus",
-            vec!["consensus.blk", "net.blk"],
-            send_to_main,
-            receive_from_main,
-        );
-
         let address = String::from("127.0.0.1:9091");
         loop {
-            let (_key, content) = receive_from_mq.recv().unwrap();
+            let (_key, content) = self.receiver.recv().unwrap();
             let (_cmd_id, _origin, msg_type) = parse_msg(&content);
             match msg_type {
                 MsgClass::BLOCKWITHPROOF(block_with_proof) => {

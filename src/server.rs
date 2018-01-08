@@ -42,7 +42,7 @@ impl Service for Server {
 
     fn call(&self, req: Request) -> Self::Future {
         match (req.method(), req.path()) {
-            (&Method::Post, "/metrics") => {
+            (&Method::Get, "/metrics") => {
                 trace!("found");
                 let metrics = self.collect();
                 let mut buf = vec![];

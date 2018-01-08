@@ -69,7 +69,7 @@ fn main() {
         let (_send_to_mq, receive_from_main) = channel();
         start_pubsub(
             "monitor_consensus",
-            vec!["consensus.blk", "net.blk"],
+            vec!["consensus.blk", "net.blk", "jsonrpc.metrics", "auth.metrics"],
             send_to_main,
             receive_from_main,
         );

@@ -29,6 +29,7 @@ impl Dispatcher {
     pub fn start(&self) {
         loop {
             let (key, content) = self.receiver.lock().unwrap().recv().unwrap();
+            trace!("receive message from topic: {}", key);
             match key.as_ref() {
                 "jsonrpc.metrics" => self.jsonrpc_metrics.lock().unwrap().process(content),
                 "auth.metrics" => self.auth_metrics.lock().unwrap().process(content),

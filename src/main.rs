@@ -1,5 +1,12 @@
+#![allow(unused_must_use, unused_imports)]
+extern crate clap;
 extern crate dotenv;
+extern crate futures;
+extern crate hyper;
 extern crate libproto;
+#[macro_use]
+extern crate log;
+extern crate logger;
 #[macro_use]
 extern crate prometheus;
 extern crate proof;
@@ -7,21 +14,48 @@ extern crate pubsub;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_json;
+extern crate spin;
+extern crate tokio_core;
+#[macro_use]
+extern crate util;
 
+mod server;
 mod block_metrics;
 mod jsonrpc_metrics;
 mod config;
 mod proto;
 
 use block_metrics::BlockMetrics;
+use clap::App;
 use config::Config;
+use hyper::server::Http;
 use pubsub::start_pubsub;
+use server::Server;
 use std::env;
 use std::sync::mpsc::channel;
 use std::thread;
+use std::time::Duration;
+use util::panichandler::set_panic_handler;
 
 fn main() {
-    let config = Config::load("./config.json");
+    micro_service_init!("cita-monitor", "CITA:Monitor");
+    // load config
+    let matches = App::new("monitor")
+        .version("0.1")
+        .author("Cryptape")
+        .about("CITA Monitor by Rust")
+        .args_from_usage("-c, --config=[FILE] 'Sets a custom config file'")
+        .get_matches();
+
+    let mut config_path = "./monitor.json";
+    if let Some(c) = matches.value_of("monitor") {
+        info!("Value for config: {}", c);
+        config_path = c;
+    }
+
+    let config = Config::load(config_path);
+    info!("CITA:monitor config \n {:?}", config);
+
     let mut threads = vec![];
     for url in config.amqp_urls {
         env::set_var("AMQP_URL", url.clone());
@@ -38,7 +72,15 @@ fn main() {
         threads.push(t);
     }
 
-    threads.into_iter().for_each(|t| {
-        let _ = t.join();
-    });
+    let server = Server {
+        //        tx: _send_to_mq,
+        timeout: Duration::from_secs(10),
+    };
+
+    println!("http listening");
+    let mut http = Http::new();
+    http.pipeline(true);
+    http.bind(&"127.0.0.1:8080".parse().unwrap(), server)
+        .unwrap()
+        .run();
 }

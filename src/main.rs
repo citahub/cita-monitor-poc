@@ -38,6 +38,7 @@ use pubsub::start_pubsub;
 use server::Server;
 use std::env;
 use std::sync::mpsc::channel;
+use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 use util::panichandler::set_panic_handler;
@@ -61,7 +62,7 @@ fn main() {
     let config = Config::load(config_path);
     info!("CITA:monitor config \n {:?}", config);
 
-    let mut threads = vec![];
+    let mut dispatchers = vec![];
     for url in config.amqp_urls {
         env::set_var("AMQP_URL", url.clone());
         let (send_to_main, receive_from_mq) = channel();
@@ -75,17 +76,20 @@ fn main() {
         let block_metrics = BlockMetrics::new(&url);
         let jsonrpc_metrics = JsonrpcMetrics::new(&url);
         let auth_metrics = AuthMetrics::new(&url);
-
-        let t = thread::spawn(move || Dispatcher::new(
+        let dispatcher = Arc::new(Dispatcher::new(
             receive_from_mq,
             block_metrics,
             jsonrpc_metrics,
-            auth_metrics).start());
-        threads.push(t);
+            auth_metrics
+        ));
+        let dup_dispatcher = dispatcher.clone();
+        dispatchers.push(dispatcher);
+
+        thread::spawn(move || dup_dispatcher.start());
     }
 
     let server = Server {
-        //        tx: _send_to_mq,
+        dispatchers: dispatchers,
         timeout: Duration::from_secs(10),
     };
 

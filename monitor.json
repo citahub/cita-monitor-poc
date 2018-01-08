@@ -1,3 +1,6 @@
 {
-    "amqp_urls": ["amqp://guest:guest@localhost/node0", "amqp://guest:guest@localhost/node1", "amqp://guest:guest@localhost/node2", "amqp://guest:guest@localhost/node3"]
+    "amqp_urls": ["amqp://guest:guest@localhost/node0",
+                  "amqp://guest:guest@localhost/node1",
+                  "amqp://guest:guest@localhost/node2",
+                  "amqp://guest:guest@localhost/node3"]
 }

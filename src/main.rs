@@ -16,16 +16,22 @@ extern crate serde_derive;
 extern crate serde_json;
 extern crate spin;
 extern crate tokio_core;
+extern crate protobuf;
 #[macro_use]
 extern crate util;
 
 mod server;
 mod block_metrics;
 mod jsonrpc_metrics;
+mod auth_metrics;
 mod config;
+mod dispatcher;
 
 use block_metrics::BlockMetrics;
 use clap::App;
+use jsonrpc_metrics::JsonrpcMetrics;
+use auth_metrics::AuthMetrics;
+use dispatcher::Dispatcher;
 use config::Config;
 use hyper::server::Http;
 use pubsub::start_pubsub;
@@ -66,8 +72,15 @@ fn main() {
             send_to_main,
             receive_from_main,
         );
+        let block_metrics = BlockMetrics::new(&url);
+        let jsonrpc_metrics = JsonrpcMetrics::new(&url);
+        let auth_metrics = AuthMetrics::new(&url);
 
-        let t = thread::spawn(move || BlockMetrics::new(&url, receive_from_mq).process());
+        let t = thread::spawn(move || Dispatcher::new(
+            receive_from_mq,
+            block_metrics,
+            jsonrpc_metrics,
+            auth_metrics).start());
         threads.push(t);
     }
 

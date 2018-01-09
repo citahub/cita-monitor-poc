@@ -6,7 +6,7 @@ use proof::TendermintProof;
 use std::usize::MAX;
 
 /// Subscribe message from mq, push metric to prometheus gateway.
-pub struct BlockMetrics {
+pub struct ConsensusMetrics {
     /// Block generated interval gauge
     block_interval: Gauge,
     /// Block number
@@ -24,7 +24,7 @@ fn opts_with_amqp_url(name: String, help: String, amqp_url: &str) -> Opts {
     opts.const_label("amqp_url", amqp_url)
 }
 
-impl BlockMetrics {
+impl ConsensusMetrics {
     pub fn new(amqp_url: &str) -> Self {
         let block_interval = register_gauge!(opts_with_amqp_url(
             String::from("block_interval"),
@@ -50,7 +50,7 @@ impl BlockMetrics {
             amqp_url
         )).unwrap();
 
-        BlockMetrics {
+        ConsensusMetrics {
             block_interval: block_interval,
             block_number: block_number,
             last_block_generator: last_block_generator,

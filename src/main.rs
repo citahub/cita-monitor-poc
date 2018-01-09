@@ -21,13 +21,13 @@ extern crate protobuf;
 extern crate util;
 
 mod server;
-mod block_metrics;
+mod consensus_metrics;
 mod jsonrpc_metrics;
 mod auth_metrics;
 mod config;
 mod dispatcher;
 
-use block_metrics::BlockMetrics;
+use consensus_metrics::ConsensusMetrics;
 use clap::App;
 use jsonrpc_metrics::JsonrpcMetrics;
 use auth_metrics::AuthMetrics;
@@ -42,6 +42,17 @@ use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 use util::panichandler::set_panic_handler;
+
+fn new_dispatcher(url: String) -> Arc<Dispatcher> {
+    let block_metrics = ConsensusMetrics::new(&url);
+    let jsonrpc_metrics = JsonrpcMetrics::new(&url);
+    let auth_metrics = AuthMetrics::new(&url);
+    Arc::new(Dispatcher::new(
+        block_metrics,
+        jsonrpc_metrics,
+        auth_metrics
+    ))
+}
 
 fn main() {
     micro_service_init!("cita-monitor", "CITA:Monitor");
@@ -73,19 +84,13 @@ fn main() {
             send_to_main,
             receive_from_main,
         );
-        let block_metrics = BlockMetrics::new(&url);
-        let jsonrpc_metrics = JsonrpcMetrics::new(&url);
-        let auth_metrics = AuthMetrics::new(&url);
-        let dispatcher = Arc::new(Dispatcher::new(
-            receive_from_mq,
-            block_metrics,
-            jsonrpc_metrics,
-            auth_metrics
-        ));
+        let dispatcher = new_dispatcher(url);
         let dup_dispatcher = dispatcher.clone();
         dispatchers.push(dispatcher);
 
-        thread::spawn(move || dup_dispatcher.start());
+        thread::spawn(move || loop {
+            dup_dispatcher.process(receive_from_mq.recv().unwrap())
+        });
     }
 
     let server = Server {
@@ -93,7 +98,7 @@ fn main() {
         timeout: Duration::from_secs(10),
     };
 
-    println!("http listening");
+    info!("http listening");
     let mut http = Http::new();
     http.pipeline(true);
     http.bind(&"127.0.0.1:8080".parse().unwrap(), server)

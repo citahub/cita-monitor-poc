@@ -23,6 +23,7 @@ extern crate util;
 mod server;
 mod consensus_metrics;
 mod jsonrpc_metrics;
+mod network_metrics;
 mod auth_metrics;
 mod config;
 mod dispatcher;
@@ -31,6 +32,7 @@ use consensus_metrics::ConsensusMetrics;
 use clap::App;
 use jsonrpc_metrics::JsonrpcMetrics;
 use auth_metrics::AuthMetrics;
+use network_metrics::NetworkMetrics;
 use dispatcher::Dispatcher;
 use config::Config;
 use hyper::server::Http;
@@ -47,10 +49,12 @@ fn new_dispatcher(url: String) -> Arc<Dispatcher> {
     let block_metrics = ConsensusMetrics::new(&url);
     let jsonrpc_metrics = JsonrpcMetrics::new(&url);
     let auth_metrics = AuthMetrics::new(&url);
+    let network_metrics = NetworkMetrics::new(&url);
     Arc::new(Dispatcher::new(
         block_metrics,
         jsonrpc_metrics,
-        auth_metrics
+        auth_metrics,
+        network_metrics
     ))
 }
 
@@ -80,7 +84,7 @@ fn main() {
         let (_send_to_mq, receive_from_main) = channel();
         start_pubsub(
             "monitor_consensus",
-            vec!["consensus.blk", "net.blk", "jsonrpc.metrics", "auth.metrics"],
+            vec!["consensus.blk", "net.blk", "jsonrpc.metrics", "auth.metrics", "network.metrics"],
             send_to_main,
             receive_from_main,
         );

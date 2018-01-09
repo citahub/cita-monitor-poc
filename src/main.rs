@@ -16,26 +16,47 @@ extern crate serde_derive;
 extern crate serde_json;
 extern crate spin;
 extern crate tokio_core;
+extern crate protobuf;
 #[macro_use]
 extern crate util;
 
 mod server;
-mod block_metrics;
+mod consensus_metrics;
 mod jsonrpc_metrics;
+mod network_metrics;
+mod auth_metrics;
 mod config;
-mod proto;
+mod dispatcher;
 
-use block_metrics::BlockMetrics;
+use consensus_metrics::ConsensusMetrics;
 use clap::App;
+use jsonrpc_metrics::JsonrpcMetrics;
+use auth_metrics::AuthMetrics;
+use network_metrics::NetworkMetrics;
+use dispatcher::Dispatcher;
 use config::Config;
 use hyper::server::Http;
 use pubsub::start_pubsub;
 use server::Server;
 use std::env;
 use std::sync::mpsc::channel;
+use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 use util::panichandler::set_panic_handler;
+
+fn new_dispatcher(url: String) -> Arc<Dispatcher> {
+    let block_metrics = ConsensusMetrics::new(&url);
+    let jsonrpc_metrics = JsonrpcMetrics::new(&url);
+    let auth_metrics = AuthMetrics::new(&url);
+    let network_metrics = NetworkMetrics::new(&url);
+    Arc::new(Dispatcher::new(
+        block_metrics,
+        jsonrpc_metrics,
+        auth_metrics,
+        network_metrics
+    ))
+}
 
 fn main() {
     micro_service_init!("cita-monitor", "CITA:Monitor");
@@ -56,28 +77,32 @@ fn main() {
     let config = Config::load(config_path);
     info!("CITA:monitor config \n {:?}", config);
 
-    let mut threads = vec![];
+    let mut dispatchers = vec![];
     for url in config.amqp_urls {
         env::set_var("AMQP_URL", url.clone());
         let (send_to_main, receive_from_mq) = channel();
         let (_send_to_mq, receive_from_main) = channel();
         start_pubsub(
             "monitor_consensus",
-            vec!["consensus.blk", "net.blk"],
+            vec!["consensus.blk", "net.blk", "jsonrpc.metrics", "auth.metrics", "network.metrics"],
             send_to_main,
             receive_from_main,
         );
+        let dispatcher = new_dispatcher(url);
+        let dup_dispatcher = dispatcher.clone();
+        dispatchers.push(dispatcher);
 
-        let t = thread::spawn(move || BlockMetrics::new(&url, receive_from_mq).process());
-        threads.push(t);
+        thread::spawn(move || loop {
+            dup_dispatcher.process(receive_from_mq.recv().unwrap())
+        });
     }
 
     let server = Server {
-        //        tx: _send_to_mq,
+        dispatchers: dispatchers,
         timeout: Duration::from_secs(10),
     };
 
-    println!("http listening");
+    info!("http listening");
     let mut http = Http::new();
     http.pipeline(true);
     http.bind(&"127.0.0.1:8080".parse().unwrap(), server)

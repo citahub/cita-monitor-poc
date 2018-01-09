@@ -2,14 +2,14 @@ use prometheus::proto::{MetricFamilyVec, MetricFamily, LabelPair};
 use protobuf::core::parse_from_bytes;
 use util::snappy;
 
-pub struct JsonrpcMetrics {
+pub struct AuthMetrics {
     amqp_url: String,
     metrics: Option<MetricFamilyVec>,
 }
 
-impl JsonrpcMetrics {
+impl AuthMetrics {
     pub fn new(amqp_url: &str) -> Self {
-        JsonrpcMetrics {
+        AuthMetrics {
             amqp_url: String::from(amqp_url),
             metrics: None,
         }

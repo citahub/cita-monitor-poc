@@ -1,14 +1,12 @@
 use libproto::{parse_msg, MsgClass};
 use libproto::blockchain::Block;
-use prometheus::{gather, push_metrics, Counter, Gauge, Opts};
+use prometheus::{gather, Counter, Gauge, Opts};
+use prometheus::proto::MetricFamily;
 use proof::TendermintProof;
-use std::collections::HashMap;
-use std::sync::mpsc::Receiver;
 use std::usize::MAX;
 
 /// Subscribe message from mq, push metric to prometheus gateway.
-pub(crate) struct BlockMetrics {
-    receiver: Receiver<(String, Vec<u8>)>,
+pub struct ConsensusMetrics {
     /// Block generated interval gauge
     block_interval: Gauge,
     /// Block number
@@ -26,8 +24,8 @@ fn opts_with_amqp_url(name: String, help: String, amqp_url: &str) -> Opts {
     opts.const_label("amqp_url", amqp_url)
 }
 
-impl BlockMetrics {
-    pub fn new(amqp_url: &str, receiver: Receiver<(String, Vec<u8>)>) -> Self {
+impl ConsensusMetrics {
+    pub fn new(amqp_url: &str) -> Self {
         let block_interval = register_gauge!(opts_with_amqp_url(
             String::from("block_interval"),
             String::from("Block generate interval"),
@@ -52,8 +50,7 @@ impl BlockMetrics {
             amqp_url
         )).unwrap();
 
-        BlockMetrics {
-            receiver: receiver,
+        ConsensusMetrics {
             block_interval: block_interval,
             block_number: block_number,
             last_block_generator: last_block_generator,
@@ -89,7 +86,7 @@ impl BlockMetrics {
         let _ = self.transaction_counter.inc_by(tx_number);
     }
 
-    fn record_block(&mut self, block: &Block, url: &str) {
+    fn record_block(&mut self, block: &Block) {
         let block_height = block.get_header().get_height();
         let current_height = self.block_number.get() as u64;
         if block_height == current_height + 1 || current_height == 0 {
@@ -99,28 +96,29 @@ impl BlockMetrics {
             self.set_last_block_generator(TendermintProof::from(proof.clone()));
             self.set_block_interval(&block);
             self.set_transaction_counter(&block);
-            let metric_family = gather();
-            let _ = push_metrics("cita-consensus", HashMap::new(), &url, metric_family);
+            // TODO: use pull instead of push
+            // let metric_family = gather();
+            // let _ = push_metrics("cita-consensus", HashMap::new(), &url, metric_family);
         }
     }
 
-    pub fn process(&mut self) {
-        let address = String::from("127.0.0.1:9091");
-        loop {
-            let (_key, content) = self.receiver.recv().unwrap();
-            let (_cmd_id, _origin, msg_type) = parse_msg(&content);
-            match msg_type {
-                MsgClass::BLOCKWITHPROOF(block_with_proof) => {
-                    self.record_block(block_with_proof.get_blk(), &address);
-                }
-                MsgClass::SYNCRESPONSE(sync_response) => {
-                    let blocks = sync_response.get_blocks();
-                    for block in blocks {
-                        self.record_block(&block, &address);
-                    }
-                }
-                _ => {}
+    pub fn process(&mut self, data: Vec<u8>) {
+        let (_cmd_id, _origin, msg_type) = parse_msg(&data);
+        match msg_type {
+            MsgClass::BLOCKWITHPROOF(block_with_proof) => {
+                self.record_block(block_with_proof.get_blk());
             }
+            MsgClass::SYNCRESPONSE(sync_response) => {
+                let blocks = sync_response.get_blocks();
+                for block in blocks {
+                    self.record_block(&block);
+                }
+            }
+            _ => {}
         }
+    }
+
+    pub fn gather(&self) -> Vec<MetricFamily> {
+        gather()
     }
 }

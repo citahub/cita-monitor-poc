@@ -13,10 +13,13 @@ use std::sync::mpsc::Sender;
 use std::time::Duration;
 use tokio_core::net::TcpListener;
 use tokio_core::reactor::{Core, Handle, Timeout};
+use dispatcher::Dispatcher;
+use prometheus::proto::MetricFamily;
+use prometheus::{TextEncoder, Encoder};
 
 #[derive(Clone)]
 pub struct Server {
-    //    pub tx: Sender<(String, Vec<u8>)>,
+    pub dispatchers: Vec<Arc<Dispatcher>>,
     pub timeout: Duration,
 }
 
@@ -39,14 +42,19 @@ impl Service for Server {
 
     fn call(&self, req: Request) -> Self::Future {
         match (req.method(), req.path()) {
-            (&Method::Post, "/metrics") => {
-                println!("found");
+            (&Method::Get, "/metrics") => {
+                trace!("found");
+                let metrics = self.collect();
+                let mut buf = vec![];
+                TextEncoder.encode(&metrics, &mut buf).unwrap();
                 Box::new(futures::future::ok(
-                    Response::new().with_status(StatusCode::Ok),
+                    Response::new()
+                        .with_status(StatusCode::Ok)
+                        .with_body(buf)
                 ))
             }
             _ => {
-                println!("not found");
+                info!("not found");
                 Box::new(futures::future::ok(
                     Response::new().with_status(StatusCode::NotFound),
                 ))
@@ -55,4 +63,12 @@ impl Service for Server {
     }
 }
 
-//impl Server {}
+impl Server {
+    fn collect(&self) -> Vec<MetricFamily> {
+        let mut metrics = vec![];
+        for dispatcher in &self.dispatchers {
+            dispatcher.gather().into_iter().for_each(|metric| metrics.push(metric));
+        }
+        metrics
+    }
+}

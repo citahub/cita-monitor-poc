@@ -23,10 +23,7 @@ tokio-io = "0.1"
 spin = "0.4"
 log = "0.3"
 clap = "2"
-
-[dependencies.prometheus]
-version = "0.3.6"
-features = ["push"]
+prometheus = { git = "https://github.com/cryptape/rust-prometheus.git", branch = "metrics_collector" }
 
 [features]
 default = ["secp256k1", "sha3hash", "rabbitmq"]

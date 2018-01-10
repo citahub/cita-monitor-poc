@@ -2,29 +2,26 @@ use prometheus::proto::{LabelPair, MetricFamily, MetricFamilyVec};
 use protobuf::core::parse_from_bytes;
 use util::snappy;
 
-pub struct JsonrpcMetrics {
+pub struct Metrics {
     amqp_url: String,
-    metrics: Option<MetricFamilyVec>,
+    metrics: MetricFamilyVec,
 }
 
-impl JsonrpcMetrics {
+impl Metrics {
     pub fn new(amqp_url: &str) -> Self {
-        JsonrpcMetrics {
+        Metrics {
             amqp_url: String::from(amqp_url),
-            metrics: None,
+            metrics: MetricFamilyVec::new(),
         }
     }
 
     pub fn process(&mut self, data: Vec<u8>) {
         let decompressed_data = snappy::cita_decompress(data);
-        let metrics = parse_from_bytes::<MetricFamilyVec>(&decompressed_data).unwrap();
-        self.metrics = Some(metrics);
+        self.metrics = parse_from_bytes::<MetricFamilyVec>(&decompressed_data).unwrap();
     }
 
     pub fn gather(&mut self) -> Vec<MetricFamily> {
-        let mut metric_families: Vec<MetricFamily> = self.metrics
-            .take()
-            .map_or(vec![], |t| t.get_metrics().to_vec());
+        let mut metric_families: Vec<MetricFamily> = self.metrics.get_metrics().to_vec();
         for metrics in metric_families.as_mut_slice() {
             for metric in metrics.mut_metric().as_mut_slice() {
                 let mut label = LabelPair::new();

@@ -1,3 +1,4 @@
+#![allow(unused_must_use, unused_imports)]
 use dispatcher::Dispatcher;
 use futures;
 use futures::{oneshot, Future, Stream};

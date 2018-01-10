@@ -43,7 +43,7 @@ impl Service for Server {
     fn call(&self, req: Request) -> Self::Future {
         match (req.method(), req.path()) {
             (&Method::Get, "/metrics") => {
-                trace!("found");
+                debug!("found");
                 let metrics = self.collect();
                 let mut buf = vec![];
                 TextEncoder.encode(&metrics, &mut buf).unwrap();
@@ -54,7 +54,7 @@ impl Service for Server {
                 ))
             }
             _ => {
-                info!("not found");
+                error!("not found");
                 Box::new(futures::future::ok(
                     Response::new().with_status(StatusCode::NotFound),
                 ))

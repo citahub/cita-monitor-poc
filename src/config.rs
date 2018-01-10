@@ -5,6 +5,7 @@ use std::io::BufReader;
 #[derive(Deserialize, Debug)]
 pub struct Config {
     pub amqp_urls: Vec<String>,
+    pub duration: u64,
 }
 
 impl Config {

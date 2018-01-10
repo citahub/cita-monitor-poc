@@ -1,4 +1,4 @@
-use prometheus::proto::{MetricFamilyVec, MetricFamily, LabelPair};
+use prometheus::proto::{LabelPair, MetricFamily, MetricFamilyVec};
 use protobuf::core::parse_from_bytes;
 use util::snappy;
 
@@ -22,7 +22,9 @@ impl JsonrpcMetrics {
     }
 
     pub fn gather(&mut self) -> Vec<MetricFamily> {
-        let mut metric_families: Vec<MetricFamily> = self.metrics.take().map_or(vec![], |t| t.get_metrics().to_vec());
+        let mut metric_families: Vec<MetricFamily> = self.metrics
+            .take()
+            .map_or(vec![], |t| t.get_metrics().to_vec());
         for metrics in metric_families.as_mut_slice() {
             for metric in metrics.mut_metric().as_mut_slice() {
                 let mut label = LabelPair::new();

@@ -1,10 +1,10 @@
-use jsonrpc_metrics::JsonrpcMetrics;
-use consensus_metrics::ConsensusMetrics;
 use auth_metrics::AuthMetrics;
+use consensus_metrics::ConsensusMetrics;
+use jsonrpc_metrics::JsonrpcMetrics;
 use network_metrics::NetworkMetrics;
 use prometheus::proto::MetricFamily;
-use std::sync::mpsc::Receiver;
 use std::sync::Mutex;
+use std::sync::mpsc::Receiver;
 
 /// Subscribe message from amqp_url, then dispatch message according to topic
 pub struct Dispatcher {
@@ -15,10 +15,12 @@ pub struct Dispatcher {
 }
 
 impl Dispatcher {
-    pub fn new(block_metrics: ConsensusMetrics,
-               jsonrpc_metrics: JsonrpcMetrics,
-               auth_metrics: AuthMetrics,
-               network_metrics: NetworkMetrics) -> Self {
+    pub fn new(
+        block_metrics: ConsensusMetrics,
+        jsonrpc_metrics: JsonrpcMetrics,
+        auth_metrics: AuthMetrics,
+        network_metrics: NetworkMetrics,
+    ) -> Self {
         Dispatcher {
             block_metrics: Mutex::new(block_metrics),
             jsonrpc_metrics: Mutex::new(jsonrpc_metrics),
@@ -40,10 +42,30 @@ impl Dispatcher {
 
     pub fn gather(&self) -> Vec<MetricFamily> {
         let mut metric_families = vec![];
-        self.block_metrics.lock().unwrap().gather().into_iter().for_each(|metrics| metric_families.push(metrics));
-        self.jsonrpc_metrics.lock().unwrap().gather().into_iter().for_each(|metrics| metric_families.push(metrics));
-        self.auth_metrics.lock().unwrap().gather().into_iter().for_each(|metrics| metric_families.push(metrics));
-        self.network_metrics.lock().unwrap().gather().into_iter().for_each(|metrics| metric_families.push(metrics));
+        self.block_metrics
+            .lock()
+            .unwrap()
+            .gather()
+            .into_iter()
+            .for_each(|metrics| metric_families.push(metrics));
+        self.jsonrpc_metrics
+            .lock()
+            .unwrap()
+            .gather()
+            .into_iter()
+            .for_each(|metrics| metric_families.push(metrics));
+        self.auth_metrics
+            .lock()
+            .unwrap()
+            .gather()
+            .into_iter()
+            .for_each(|metrics| metric_families.push(metrics));
+        self.network_metrics
+            .lock()
+            .unwrap()
+            .gather()
+            .into_iter()
+            .for_each(|metrics| metric_families.push(metrics));
         metric_families
     }
 }

@@ -10,13 +10,13 @@ extern crate logger;
 #[macro_use]
 extern crate prometheus;
 extern crate proof;
+extern crate protobuf;
 extern crate pubsub;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_json;
 extern crate spin;
 extern crate tokio_core;
-extern crate protobuf;
 #[macro_use]
 extern crate util;
 
@@ -28,19 +28,19 @@ mod auth_metrics;
 mod config;
 mod dispatcher;
 
-use consensus_metrics::ConsensusMetrics;
-use clap::App;
-use jsonrpc_metrics::JsonrpcMetrics;
 use auth_metrics::AuthMetrics;
-use network_metrics::NetworkMetrics;
-use dispatcher::Dispatcher;
+use clap::App;
 use config::Config;
+use consensus_metrics::ConsensusMetrics;
+use dispatcher::Dispatcher;
 use hyper::server::Http;
+use jsonrpc_metrics::JsonrpcMetrics;
+use network_metrics::NetworkMetrics;
 use pubsub::start_pubsub;
 use server::Server;
 use std::env;
-use std::sync::mpsc::channel;
 use std::sync::Arc;
+use std::sync::mpsc::channel;
 use std::thread;
 use std::time::Duration;
 use util::panichandler::set_panic_handler;
@@ -54,7 +54,7 @@ fn new_dispatcher(url: String) -> Arc<Dispatcher> {
         block_metrics,
         jsonrpc_metrics,
         auth_metrics,
-        network_metrics
+        network_metrics,
     ))
 }
 
@@ -84,7 +84,13 @@ fn main() {
         let (_send_to_mq, receive_from_main) = channel();
         start_pubsub(
             "monitor_consensus",
-            vec!["consensus.blk", "net.blk", "jsonrpc.metrics", "auth.metrics", "network.metrics"],
+            vec![
+                "consensus.blk",
+                "net.blk",
+                "jsonrpc.metrics",
+                "auth.metrics",
+                "network.metrics",
+            ],
             send_to_main,
             receive_from_main,
         );

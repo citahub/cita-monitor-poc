@@ -1,4 +1,4 @@
-use prometheus::proto::{MetricFamilyVec, MetricFamily, LabelPair};
+use prometheus::proto::{LabelPair, MetricFamily, MetricFamilyVec};
 use protobuf::core::parse_from_bytes;
 use util::snappy;
 
@@ -21,16 +21,40 @@ impl AuthMetrics {
         self.metrics = Some(metrics);
     }
 
-    pub fn gather(&mut self) -> Vec<MetricFamily> {
-        let mut metric_families: Vec<MetricFamily> = self.metrics.take().map_or(vec![], |t| t.get_metrics().to_vec());
-        for metrics in metric_families.as_mut_slice() {
-            for metric in metrics.mut_metric().as_mut_slice() {
-                let mut label = LabelPair::new();
-                label.set_name(String::from("amqp_url"));
-                label.set_value(self.amqp_url.clone());
-                metric.mut_label().push(label);
-            }
-        }
+    pub fn gather(&self) -> Vec<MetricFamily> {
+        let mut metric_families = vec![];
+        {
+            self.block_metrics
+                .lock()
+                .unwrap()
+                .gather()
+                .into_iter()
+                .for_each(|metrics| metric_families.push(metrics))
+        };
+        {
+            self.jsonrpc_metrics
+                .lock()
+                .unwrap()
+                .gather()
+                .into_iter()
+                .for_each(|metrics| metric_families.push(metrics))
+        };
+        {
+            self.auth_metrics
+                .lock()
+                .unwrap()
+                .gather()
+                .into_iter()
+                .for_each(|metrics| metric_families.push(metrics))
+        };
+        {
+            self.network_metrics
+                .lock()
+                .unwrap()
+                .gather()
+                .into_iter()
+                .for_each(|metrics| metric_families.push(metrics))
+        };
         metric_families
     }
 }

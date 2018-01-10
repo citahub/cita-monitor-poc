@@ -1,9 +1,12 @@
+use dispatcher::Dispatcher;
 use futures;
 use futures::{oneshot, Future, Stream};
 use futures::future::Either;
 use futures::sync::oneshot;
 use hyper::{self as hyper, Method, StatusCode};
 use hyper::server::{NewService, Request, Response, Service};
+use prometheus::{Encoder, TextEncoder};
+use prometheus::proto::MetricFamily;
 use spin::Mutex;
 use std::collections::HashMap;
 use std::io;
@@ -13,9 +16,6 @@ use std::sync::mpsc::Sender;
 use std::time::Duration;
 use tokio_core::net::TcpListener;
 use tokio_core::reactor::{Core, Handle, Timeout};
-use dispatcher::Dispatcher;
-use prometheus::proto::MetricFamily;
-use prometheus::{TextEncoder, Encoder};
 
 #[derive(Clone)]
 pub struct Server {
@@ -48,9 +48,7 @@ impl Service for Server {
                 let mut buf = vec![];
                 TextEncoder.encode(&metrics, &mut buf).unwrap();
                 Box::new(futures::future::ok(
-                    Response::new()
-                        .with_status(StatusCode::Ok)
-                        .with_body(buf)
+                    Response::new().with_status(StatusCode::Ok).with_body(buf),
                 ))
             }
             _ => {
@@ -67,7 +65,10 @@ impl Server {
     fn collect(&self) -> Vec<MetricFamily> {
         let mut metrics = vec![];
         for dispatcher in &self.dispatchers {
-            dispatcher.gather().into_iter().for_each(|metric| metrics.push(metric));
+            dispatcher
+                .gather()
+                .into_iter()
+                .for_each(|metric| metrics.push(metric));
         }
         metrics
     }

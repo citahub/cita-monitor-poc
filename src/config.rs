@@ -2,9 +2,10 @@ use serde_json;
 use std::fs::File;
 use std::io::BufReader;
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct Config {
     pub amqp_urls: Vec<String>,
+    pub duration: u64,
 }
 
 impl Config {

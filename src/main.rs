@@ -1,4 +1,4 @@
-#![allow(unused_must_use, unused_imports)]
+//#![allow(unused_must_use, unused_imports)]
 extern crate clap;
 extern crate dotenv;
 extern crate futures;
@@ -10,51 +10,47 @@ extern crate logger;
 #[macro_use]
 extern crate prometheus;
 extern crate proof;
+extern crate protobuf;
 extern crate pubsub;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_json;
 extern crate spin;
 extern crate tokio_core;
-extern crate protobuf;
 #[macro_use]
 extern crate util;
 
 mod server;
 mod consensus_metrics;
-mod jsonrpc_metrics;
-mod network_metrics;
-mod auth_metrics;
+mod metrics;
 mod config;
 mod dispatcher;
 
-use consensus_metrics::ConsensusMetrics;
 use clap::App;
-use jsonrpc_metrics::JsonrpcMetrics;
-use auth_metrics::AuthMetrics;
-use network_metrics::NetworkMetrics;
-use dispatcher::Dispatcher;
 use config::Config;
+use consensus_metrics::ConsensusMetrics;
+use dispatcher::Dispatcher;
 use hyper::server::Http;
+use metrics::Metrics;
 use pubsub::start_pubsub;
 use server::Server;
 use std::env;
-use std::sync::mpsc::channel;
 use std::sync::Arc;
+use std::sync::mpsc::channel;
 use std::thread;
 use std::time::Duration;
-use util::panichandler::set_panic_handler;
+use util::set_panic_handler;
 
 fn new_dispatcher(url: String) -> Arc<Dispatcher> {
-    let block_metrics = ConsensusMetrics::new(&url);
-    let jsonrpc_metrics = JsonrpcMetrics::new(&url);
-    let auth_metrics = AuthMetrics::new(&url);
-    let network_metrics = NetworkMetrics::new(&url);
+    let consensus_metrics = ConsensusMetrics::new(&url);
+    let jsonrpc_metrics = Metrics::new(&url);
+    let auth_metrics = Metrics::new(&url);
+    let network_metrics = Metrics::new(&url);
     Arc::new(Dispatcher::new(
-        block_metrics,
+        consensus_metrics,
         jsonrpc_metrics,
         auth_metrics,
-        network_metrics
+        network_metrics,
     ))
 }
 
@@ -84,7 +80,13 @@ fn main() {
         let (_send_to_mq, receive_from_main) = channel();
         start_pubsub(
             "monitor_consensus",
-            vec!["consensus.blk", "net.blk", "jsonrpc.metrics", "auth.metrics", "network.metrics"],
+            vec![
+                "consensus.blk",
+                "net.blk",
+                "jsonrpc.metrics",
+                "auth.metrics",
+                "network.metrics",
+            ],
             send_to_main,
             receive_from_main,
         );
@@ -99,13 +101,13 @@ fn main() {
 
     let server = Server {
         dispatchers: dispatchers,
-        timeout: Duration::from_secs(10),
+        timeout: Duration::from_secs(config.duration),
     };
 
-    info!("http listening");
+    info!("http listening: 0.0.0.0:8000");
     let mut http = Http::new();
     http.pipeline(true);
-    http.bind(&"127.0.0.1:8080".parse().unwrap(), server)
+    let _ = http.bind(&"0.0.0.0:8000".parse().unwrap(), server)
         .unwrap()
         .run();
 }

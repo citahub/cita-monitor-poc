@@ -83,18 +83,18 @@ fn main() {
         let dup_dispatcher = dispatcher.clone();
         vec_rx.insert(i, (0, receive_from_mq, dup_dispatcher));
         dispatchers.push(dispatcher);
+        i += 1;
     }
 
     thread::spawn(move || {
         let select = Select::new();
-        if let Some(item) = vec_rx.get_mut(i) {
+        for item in vec_rx.iter_mut() {
             let mut receive_from_mq1 = select.handle(&item.1);
             unsafe {
                 receive_from_mq1.add();
             }
             item.0 = receive_from_mq1.id();
         }
-        i += 1;
 
         let mut btree_map = BTreeMap::new();
         for (id, receive_from_mq, dup_dispatcher) in vec_rx {

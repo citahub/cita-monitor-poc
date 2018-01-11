@@ -11,18 +11,15 @@ pub struct Dispatcher {
     network_metrics: Mutex<Metrics>,
 }
 
+unsafe impl Sync for Dispatcher {}
+
 impl Dispatcher {
-    pub fn new(
-        consensus_metrics: ConsensusMetrics,
-        jsonrpc_metrics: Metrics,
-        auth_metrics: Metrics,
-        network_metrics: Metrics,
-    ) -> Self {
+    pub fn new(url: String) -> Dispatcher {
         Dispatcher {
-            consensus_metrics: Mutex::new(consensus_metrics),
-            jsonrpc_metrics: Mutex::new(jsonrpc_metrics),
-            auth_metrics: Mutex::new(auth_metrics),
-            network_metrics: Mutex::new(network_metrics),
+            consensus_metrics: Mutex::new(ConsensusMetrics::new(&url)),
+            jsonrpc_metrics: Mutex::new(Metrics::new(&url)),
+            auth_metrics: Mutex::new(Metrics::new(&url)),
+            network_metrics: Mutex::new(Metrics::new(&url)),
         }
     }
 

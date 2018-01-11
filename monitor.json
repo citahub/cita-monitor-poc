@@ -5,5 +5,5 @@
         "amqp://guest:guest@localhost/node2",
         "amqp://guest:guest@localhost/node3"
     ],
-    "duration": "1"
+    "duration": 1
 }

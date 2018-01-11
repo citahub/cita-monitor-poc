@@ -20,7 +20,7 @@ use tokio_core::reactor::{Core, Handle, Timeout};
 
 #[derive(Clone)]
 pub struct Server {
-    pub dispatchers: Arc<Vec<Arc<Dispatcher>>>,
+    pub dispatchers: Vec<Arc<Dispatcher>>,
     pub timeout: Duration,
 }
 
@@ -65,7 +65,7 @@ impl Service for Server {
 impl Server {
     fn collect(&self) -> Vec<MetricFamily> {
         let mut metrics = vec![];
-        for dispatcher in &*self.dispatchers {
+        for dispatcher in &self.dispatchers {
             dispatcher
                 .gather()
                 .into_iter()

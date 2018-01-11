@@ -28,6 +28,7 @@ mod dispatcher;
 
 use clap::App;
 use config::Config;
+use consensus_metrics::ConsensusMetrics;
 use dispatcher::Dispatcher;
 use hyper::server::Http;
 use metrics::Metrics;
@@ -41,12 +42,12 @@ use std::time::Duration;
 use util::set_panic_handler;
 
 fn new_dispatcher(url: String) -> Arc<Dispatcher> {
-    let block_metrics = Metrics::new(&url);
+    let consensus_metrics = ConsensusMetrics::new(&url);
     let jsonrpc_metrics = Metrics::new(&url);
     let auth_metrics = Metrics::new(&url);
     let network_metrics = Metrics::new(&url);
     Arc::new(Dispatcher::new(
-        block_metrics,
+        consensus_metrics,
         jsonrpc_metrics,
         auth_metrics,
         network_metrics,

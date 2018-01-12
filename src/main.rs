@@ -33,7 +33,7 @@ use dispatcher::Dispatcher;
 use hyper::server::Http;
 use pubsub::start_pubsub;
 use server::Server;
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 use std::env;
 use std::sync::Arc;
 use std::sync::mpsc::{channel, Select};
@@ -62,7 +62,6 @@ fn main() {
     let mut dispatchers = vec![];
     let mut vec_rx = vec![];
 
-    let mut i: usize = 0;
     for url in config.amqp_urls {
         env::set_var("AMQP_URL", url.clone());
         let (send_to_main, receive_from_mq) = channel();
@@ -80,31 +79,32 @@ fn main() {
             receive_from_main,
         );
         let dispatcher = Arc::new(Dispatcher::new(url));
-        let dup_dispatcher = dispatcher.clone();
-        vec_rx.insert(i, (0, receive_from_mq, dup_dispatcher));
+        vec_rx.push((receive_from_mq, dispatcher.clone()));
         dispatchers.push(dispatcher);
-        i += 1;
     }
 
     thread::spawn(move || {
         let select = Select::new();
-        for item in vec_rx.iter_mut() {
-            let mut receive_from_mq1 = select.handle(&item.1);
-            unsafe {
-                receive_from_mq1.add();
-            }
-            item.0 = receive_from_mq1.id();
+        let mut handlers = HashMap::new();
+        for item in &mut vec_rx {
+            let handler = select.handle(&item.0);
+            handlers.insert(handler.id(), (handler, item.1.clone()));
         }
 
-        let mut btree_map = BTreeMap::new();
-        for (id, receive_from_mq, dup_dispatcher) in vec_rx {
-            btree_map.insert(id, (receive_from_mq, dup_dispatcher));
+        // Note: we have to put handler.add() here, it doesn't work if we
+        // put handler.add() in previous for loop. I don't know why!!!
+        for (_, value) in handlers.iter_mut() {
+            let (ref mut handler, _) = *value;
+            unsafe {
+                handler.add();
+            }
         }
 
         loop {
             let id = select.wait();
-            let &(ref receive_from_mq, ref dup_dispatcher) = btree_map.get(&id).unwrap();
-            dup_dispatcher.process(receive_from_mq.recv().unwrap())
+            trace!("handle {} ready to process", id);
+            let (ref mut handler, ref dispatcher) = *handlers.get_mut(&id).unwrap();
+            dispatcher.process(handler.recv().unwrap());
         }
     });
 

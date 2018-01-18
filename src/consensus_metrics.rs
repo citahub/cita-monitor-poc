@@ -89,6 +89,7 @@ impl ConsensusMetrics {
     fn record_block(&mut self, block: &Block) {
         let block_height = block.get_header().get_height();
         let current_height = self.block_number.get() as u64;
+        trace!("current_height: {}, block_height: {}", current_height, block_height);
         if block_height == current_height + 1 || current_height == 0 {
             let proof = block.get_header().get_proof();
             // TODO: we need to support other proof type in the future
@@ -96,9 +97,6 @@ impl ConsensusMetrics {
             self.set_last_block_generator(TendermintProof::from(proof.clone()));
             self.set_block_interval(&block);
             self.set_transaction_counter(&block);
-            // TODO: use pull instead of push
-            // let metric_family = gather();
-            // let _ = push_metrics("cita-consensus", HashMap::new(), &url, metric_family);
         }
     }
 
@@ -106,15 +104,19 @@ impl ConsensusMetrics {
         let (_cmd_id, _origin, msg_type) = parse_msg(&data);
         match msg_type {
             MsgClass::BLOCKWITHPROOF(block_with_proof) => {
+                trace!("receive block from consensus");
                 self.record_block(block_with_proof.get_blk());
             }
             MsgClass::SYNCRESPONSE(sync_response) => {
+                trace!("receive block from sync");
                 let blocks = sync_response.get_blocks();
                 for block in blocks {
                     self.record_block(&block);
                 }
             }
-            _ => {}
+            _ => {
+                warn!("receive invalid message type");
+            }
         }
     }
 

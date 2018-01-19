@@ -1,9 +1,9 @@
 {
     "amqp_urls": [
-        "amqp://guest:guest@localhost/node0",
-        "amqp://guest:guest@localhost/node1",
-        "amqp://guest:guest@localhost/node2",
-        "amqp://guest:guest@localhost/node3"
+        "amqp://cita:cita@localhost/node0",
+        "amqp://cita:cita@localhost/node1",
+        "amqp://cita:cita@localhost/node2",
+        "amqp://cita:cita@localhost/node3"
     ],
     "duration": 1
 }

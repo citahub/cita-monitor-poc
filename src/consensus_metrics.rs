@@ -89,7 +89,11 @@ impl ConsensusMetrics {
     fn record_block(&mut self, block: &Block) {
         let block_height = block.get_header().get_height();
         let current_height = self.block_number.get() as u64;
-        trace!("current_height: {}, block_height: {}", current_height, block_height);
+        trace!(
+            "current_height: {}, block_height: {}",
+            current_height,
+            block_height
+        );
         if block_height == current_height + 1 || current_height == 0 {
             let proof = block.get_header().get_proof();
             // TODO: we need to support other proof type in the future

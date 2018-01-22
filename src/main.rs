@@ -62,7 +62,7 @@ fn main() {
     let mut dispatchers = vec![];
     let mut vec_rx = vec![];
 
-    for url in config.amqp_urls {
+    for url in &config.amqp_urls {
         env::set_var("AMQP_URL", url.clone());
         let (send_to_main, receive_from_mq) = channel();
         let (_send_to_mq, receive_from_main) = channel();
@@ -78,7 +78,7 @@ fn main() {
             send_to_main,
             receive_from_main,
         );
-        let dispatcher = Arc::new(Dispatcher::new(url));
+        let dispatcher = Arc::new(Dispatcher::new(url.clone()));
         vec_rx.push((receive_from_mq, dispatcher.clone()));
         dispatchers.push(dispatcher);
     }
@@ -113,10 +113,10 @@ fn main() {
         timeout: Duration::from_secs(config.duration),
     };
 
-    info!("http listening: 0.0.0.0:8000");
+    info!("http listening: {:?}", config.ip_port);
     let mut http = Http::new();
     http.pipeline(true);
-    let _ = http.bind(&"0.0.0.0:8000".parse().unwrap(), server)
+    let _ = http.bind(&config.ip_port.parse().unwrap(), server)
         .unwrap()
         .run();
 }

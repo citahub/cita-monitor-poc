@@ -5,5 +5,6 @@
         "amqp://cita:cita@localhost/node2",
         "amqp://cita:cita@localhost/node3"
     ],
-    "duration": 1
+    "duration": 1,
+    "ip_port": "0.0.0.0:8000"
 }

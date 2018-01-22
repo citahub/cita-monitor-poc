@@ -6,6 +6,7 @@ use std::io::BufReader;
 pub struct Config {
     pub amqp_urls: Vec<String>,
     pub duration: u64,
+    pub ip_port: String,
 }
 
 impl Config {

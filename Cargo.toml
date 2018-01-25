@@ -6,7 +6,6 @@ authors = ["Cryptape Technologies <arch@cryptape.com>"]
 [dependencies]
 util = { git = "https://github.com/cryptape/cita-common.git", branch = "develop" }
 libproto = { git = "https://github.com/cryptape/cita-common.git", branch = "develop" }
-pubsub = { git = "https://github.com/cryptape/cita-common.git", branch = "develop" }
 proof = { git = "https://github.com/cryptape/cita-common.git", branch = "develop" }
 logger = { git = "https://github.com/cryptape/cita-common.git", branch = "develop" }
 serde = "1.0"
@@ -25,8 +24,11 @@ log = "0.3"
 clap = "2"
 prometheus = { git = "https://github.com/cryptape/rust-prometheus.git", branch = "metrics_collector" }
 
+[dependencies.amqp]
+version = "0.1"
+default-features = false
+
 [features]
-default = ["secp256k1", "sha3hash", "rabbitmq"]
+default = ["secp256k1", "sha3hash"]
 secp256k1 = ["libproto/secp256k1", "proof/secp256k1"]
 sha3hash = ["libproto/sha3hash", "proof/sha3hash"]
-rabbitmq = ["pubsub/rabbitmq"]

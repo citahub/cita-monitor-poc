@@ -218,6 +218,7 @@ dependencies = [
 name = "cita-monitor"
 version = "0.1.0"
 dependencies = [
+ "amqp 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "clap 2.29.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "dotenv 0.10.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures 0.1.17 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -229,7 +230,6 @@ dependencies = [
  "prometheus 0.3.6 (git+https://github.com/cryptape/rust-prometheus.git?branch=metrics_collector)",
  "proof 0.6.0 (git+https://github.com/cryptape/cita-common.git?branch=develop)",
  "protobuf 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "pubsub 0.6.0 (git+https://github.com/cryptape/cita-common.git?branch=develop)",
  "serde 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_derive 1.0.27 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.9 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -838,23 +838,6 @@ dependencies = [
 name = "protobuf"
 version = "1.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[[package]]
-name = "pubsub"
-version = "0.6.0"
-source = "git+https://github.com/cryptape/cita-common.git?branch=develop#a3fb4055504c107ce093e6b70090df809479a792"
-dependencies = [
- "dotenv 0.10.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "pubsub_rabbitmq 0.1.0 (git+https://github.com/cryptape/cita-common.git?branch=develop)",
-]
-
-[[package]]
-name = "pubsub_rabbitmq"
-version = "0.1.0"
-source = "git+https://github.com/cryptape/cita-common.git?branch=develop#a3fb4055504c107ce093e6b70090df809479a792"
-dependencies = [
- "amqp 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
-]
 
 [[package]]
 name = "pulldown-cmark"
@@ -1609,8 +1592,6 @@ dependencies = [
 "checksum prometheus 0.3.6 (git+https://github.com/cryptape/rust-prometheus.git?branch=metrics_collector)" = "<none>"
 "checksum proof 0.6.0 (git+https://github.com/cryptape/cita-common.git?branch=develop)" = "<none>"
 "checksum protobuf 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)" = "bec26e67194b7d991908145fdf21b7cae8b08423d96dcb9e860cd31f854b9506"
-"checksum pubsub 0.6.0 (git+https://github.com/cryptape/cita-common.git?branch=develop)" = "<none>"
-"checksum pubsub_rabbitmq 0.1.0 (git+https://github.com/cryptape/cita-common.git?branch=develop)" = "<none>"
 "checksum pulldown-cmark 0.0.3 (registry+https://github.com/rust-lang/crates.io-index)" = "8361e81576d2e02643b04950e487ec172b687180da65c731c03cf336784e6c07"
 "checksum quick-error 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "7ac990ab4e038dd8481a5e3fd00641067fcfc674ad663f3222752ed5284e05d4"
 "checksum quick-error 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "eda5fe9b71976e62bc81b781206aaa076401769b2143379d3eb2118388babac4"

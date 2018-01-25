@@ -1,5 +1,6 @@
 //#![allow(unused_must_use, unused_imports)]
 #![feature(mpsc_select)]
+extern crate amqp;
 extern crate clap;
 extern crate dotenv;
 extern crate futures;
@@ -12,7 +13,6 @@ extern crate logger;
 extern crate prometheus;
 extern crate proof;
 extern crate protobuf;
-extern crate pubsub;
 #[macro_use]
 extern crate serde_derive;
 extern crate serde_json;
@@ -26,12 +26,13 @@ mod consensus_metrics;
 mod metrics;
 mod config;
 mod dispatcher;
+mod amqp_adapter;
 
+use amqp_adapter::start_sub;
 use clap::App;
 use config::Config;
 use dispatcher::Dispatcher;
 use hyper::server::Http;
-use pubsub::start_pubsub;
 use server::Server;
 use std::collections::HashMap;
 use std::env;
@@ -65,8 +66,7 @@ fn main() {
     for url in &config.amqp_urls {
         env::set_var("AMQP_URL", url.clone());
         let (send_to_main, receive_from_mq) = channel();
-        let (_send_to_mq, receive_from_main) = channel();
-        start_pubsub(
+        start_sub(
             "monitor_consensus",
             vec![
                 "consensus.blk",
@@ -76,7 +76,6 @@ fn main() {
                 "network.metrics",
             ],
             send_to_main,
-            receive_from_main,
         );
         let dispatcher = Arc::new(Dispatcher::new(url.clone()));
         vec_rx.push((receive_from_mq, dispatcher.clone()));

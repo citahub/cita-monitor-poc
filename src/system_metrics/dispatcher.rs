@@ -1,6 +1,6 @@
-use consensus_metrics::ConsensusMetrics;
-use metrics::Metrics;
 use prometheus::proto::MetricFamily;
+use system_metrics::consensus_metrics::ConsensusMetrics;
+use system_metrics::metrics::Metrics;
 use util::Mutex;
 
 /// Subscribe message from amqp_url, then dispatch message according to topic

@@ -1,6 +1,6 @@
 use amqp::{protocol, Basic, Channel, Consumer, Session, Table};
-use std::{self, thread};
 use std::sync::mpsc::Sender;
+use std::thread;
 
 pub struct Handler {
     tx: Sender<(String, Vec<u8>)>,
@@ -24,10 +24,7 @@ impl Consumer for Handler {
     }
 }
 
-pub const AMQP_URL: &'static str = "AMQP_URL";
-
-pub fn start_sub(name: &str, keys: Vec<&str>, tx: Sender<(String, Vec<u8>)>) {
-    let amqp_url = std::env::var(AMQP_URL).expect(format!("{} must be set", AMQP_URL).as_str());
+pub fn start_sub(amqp_url: &str, name: &str, keys: Vec<&str>, tx: Sender<(String, Vec<u8>)>) {
     let mut session = match Session::open_url(&amqp_url) {
         Ok(session) => session,
         Err(error) => panic!("failed to open url {} : {:?}", amqp_url, error),

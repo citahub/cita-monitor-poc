@@ -23,6 +23,8 @@ spin = "0.4"
 log = "0.3"
 clap = "2"
 prometheus = { git = "https://github.com/cryptape/rust-prometheus.git", branch = "metrics_collector" }
+web3 = { git = "https://github.com/cryptape/rust-web3.git" }
+cratedb = "1.0.1"
 
 [dependencies.amqp]
 version = "0.1"

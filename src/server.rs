@@ -1,5 +1,4 @@
 #![allow(unused_must_use, unused_imports)]
-use dispatcher::Dispatcher;
 use futures;
 use futures::{oneshot, Future, Stream};
 use futures::future::Either;
@@ -15,6 +14,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use std::sync::mpsc::Sender;
 use std::time::Duration;
+use system_metrics::Dispatcher;
 use tokio_core::net::TcpListener;
 use tokio_core::reactor::{Core, Handle, Timeout};
 

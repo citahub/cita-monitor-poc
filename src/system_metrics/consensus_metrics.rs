@@ -1,6 +1,6 @@
 use libproto::{Message, MsgClass};
 use libproto::blockchain::Block;
-use prometheus::{gather, Counter, Gauge, Opts};
+use prometheus::{gather, Counter, CounterVec, Gauge, Opts};
 use prometheus::proto::MetricFamily;
 use proof::TendermintProof;
 use std::convert::TryFrom;
@@ -16,6 +16,10 @@ pub struct ConsensusMetrics {
     last_block_generator: Gauge,
     /// Transaction counter
     transaction_counter: Counter,
+    /// Block generator statistic
+    block_generator_statistic: CounterVec,
+    /// Start monitor when block number is started_height
+    started_block: Option<u64>,
     last_block_timestamp: u64,
     current_block_timestamp: u64,
 }
@@ -51,17 +55,28 @@ impl ConsensusMetrics {
             amqp_url
         )).unwrap();
 
+        let block_generator_statistic = register_counter_vec!(
+            opts_with_amqp_url(
+                String::from("block_generator_statistic"),
+                String::from("Record the number of block which node have generated."),
+                amqp_url
+            ),
+            &["node_id"]
+        ).unwrap();
+
         ConsensusMetrics {
             block_interval: block_interval,
             block_number: block_number,
             last_block_generator: last_block_generator,
             transaction_counter: transaction_counter,
+            block_generator_statistic: block_generator_statistic,
+            started_block: None,
             last_block_timestamp: 0,
             current_block_timestamp: 0,
         }
     }
 
-    fn set_last_block_generator(&self, proof: TendermintProof) {
+    fn block_statistic(&self, proof: TendermintProof) {
         let height = proof.height;
         if height == MAX {
             return;
@@ -69,6 +84,10 @@ impl ConsensusMetrics {
         let round = proof.round;
         let node_id = (height + round) % 4;
         self.last_block_generator.set(node_id as f64);
+        let node_id_str = format!("node{}", node_id);
+        self.block_generator_statistic
+            .with_label_values(&[&node_id_str])
+            .inc();
     }
 
     fn set_block_interval(&mut self, block: &Block) {
@@ -89,6 +108,10 @@ impl ConsensusMetrics {
 
     fn record_block(&mut self, block: &Block) {
         let block_height = block.get_header().get_height();
+        if self.started_block.is_none() {
+            self.started_block = Some(block_height);
+            info!("start monitor when block height is: {}", block_height);
+        }
         let current_height = self.block_number.get() as u64;
         trace!(
             "current_height: {}, block_height: {}",
@@ -99,7 +122,7 @@ impl ConsensusMetrics {
             let proof = block.get_header().get_proof();
             // TODO: we need to support other proof type in the future
             self.block_number.set(block_height as f64);
-            self.set_last_block_generator(TendermintProof::from(proof.clone()));
+            self.block_statistic(TendermintProof::from(proof.clone()));
             self.set_block_interval(&block);
             self.set_transaction_counter(&block);
         }

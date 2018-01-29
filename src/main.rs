@@ -3,6 +3,7 @@
 #![feature(try_from)]
 extern crate amqp;
 extern crate clap;
+extern crate cratedb;
 extern crate dotenv;
 extern crate futures;
 extern crate hyper;
@@ -21,26 +22,25 @@ extern crate spin;
 extern crate tokio_core;
 #[macro_use]
 extern crate util;
+extern crate web3;
 
 mod server;
-mod consensus_metrics;
-mod metrics;
 mod config;
-mod dispatcher;
-mod amqp_adapter;
+mod amqp_client;
+mod system_metrics;
+mod block_metrics;
 
-use amqp_adapter::start_sub;
+use amqp_client::start_sub;
 use clap::App;
 use config::Config;
-use dispatcher::Dispatcher;
 use hyper::server::Http;
 use server::Server;
 use std::collections::HashMap;
-use std::env;
 use std::sync::Arc;
 use std::sync::mpsc::{channel, Select};
 use std::thread;
 use std::time::Duration;
+use system_metrics::Dispatcher;
 use util::set_panic_handler;
 
 fn main() {
@@ -65,9 +65,9 @@ fn main() {
     let mut vec_rx = vec![];
 
     for url in &config.amqp_urls {
-        env::set_var("AMQP_URL", url.clone());
         let (send_to_main, receive_from_mq) = channel();
         start_sub(
+            &url,
             "monitor_consensus",
             vec![
                 "consensus.blk",
@@ -107,6 +107,11 @@ fn main() {
             dispatcher.process(handler.recv().unwrap());
         }
     });
+    block_metrics::start(
+        3000,
+        String::from("http://127.0.0.1:1337/"),
+        String::from("http://127.0.0.1:4200/"),
+    );
 
     let server = Server {
         dispatchers: dispatchers,

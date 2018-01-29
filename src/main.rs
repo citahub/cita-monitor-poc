@@ -1,5 +1,6 @@
 //#![allow(unused_must_use, unused_imports)]
 #![feature(mpsc_select)]
+#![feature(try_from)]
 extern crate amqp;
 extern crate clap;
 extern crate dotenv;

@@ -1,8 +1,9 @@
-use libproto::{parse_msg, MsgClass};
+use libproto::{Message, MsgClass};
 use libproto::blockchain::Block;
 use prometheus::{gather, Counter, Gauge, Opts};
 use prometheus::proto::MetricFamily;
 use proof::TendermintProof;
+use std::convert::TryFrom;
 use std::usize::MAX;
 
 /// Subscribe message from mq, push metric to prometheus gateway.
@@ -105,8 +106,8 @@ impl ConsensusMetrics {
     }
 
     pub fn process(&mut self, data: Vec<u8>) {
-        let (_cmd_id, _origin, msg_type) = parse_msg(&data);
-        match msg_type {
+        let mut message = Message::try_from(&data).unwrap();
+        match message.take_content() {
             MsgClass::BLOCKWITHPROOF(block_with_proof) => {
                 trace!("receive block from consensus");
                 self.record_block(block_with_proof.get_blk());

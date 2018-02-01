@@ -29,6 +29,7 @@ mod config;
 mod amqp_client;
 mod system_metrics;
 mod block_metrics;
+mod transactions;
 
 use amqp_client::start_sub;
 use clap::App;
@@ -68,7 +69,7 @@ fn main() {
         let (send_to_main, receive_from_mq) = channel();
         start_sub(
             &url,
-            "monitor_consensus",
+            "monitor_system_metrics",
             vec![
                 "consensus.blk",
                 "net.blk",
@@ -111,6 +112,10 @@ fn main() {
         3000,
         String::from("http://127.0.0.1:1337/"),
         String::from("http://127.0.0.1:4200/"),
+    );
+    transactions::start(
+        &config.amqp_urls,
+        "http://127.0.0.1:4200",
     );
 
     let server = Server {

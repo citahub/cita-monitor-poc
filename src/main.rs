@@ -28,7 +28,7 @@ mod server;
 mod config;
 mod amqp_client;
 mod system_metrics;
-mod block_metrics;
+mod blocks;
 mod transactions;
 
 use amqp_client::start_sub;
@@ -108,15 +108,12 @@ fn main() {
             dispatcher.process(handler.recv().unwrap());
         }
     });
-    block_metrics::start(
+    blocks::start(
         3000,
         String::from("http://127.0.0.1:1337/"),
         String::from("http://127.0.0.1:4200/"),
     );
-    transactions::start(
-        &config.amqp_urls,
-        "http://127.0.0.1:4200",
-    );
+    transactions::start(&config.amqp_urls, "http://127.0.0.1:4200");
 
     let server = Server {
         dispatchers: dispatchers,
